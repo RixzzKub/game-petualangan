@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Quest - Adventure Game</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #2d3748;
+            margin: 0;
+            font-size: 2.8rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #4a5568;
+            margin: 10px 0 0 0;
+            font-size: 1.2rem;
+        }
+
+        .game-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr 280px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            height: fit-content;
+        }
+
+        .main-game {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            min-height: 600px;
+            position: relative;
+        }
+
+        .stats-panel h3, .inventory-panel h3 {
+            color: #2d3748;
+            margin: 0 0 15px 0;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-radius: 10px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .stat-bar {
+            width: 100px;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .health-fill { background: linear-gradient(90deg, #e53e3e, #fc8181); }
+        .mana-fill { background: linear-gradient(90deg, #3182ce, #63b3ed); }
+        .exp-fill { background: linear-gradient(90deg, #38a169, #68d391); }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .inventory-slot {
+            aspect-ratio: 1;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .inventory-slot:hover {
+            border-color: #4299e1;
+            transform: scale(1.05);
+        }
+
+        .inventory-slot.filled {
+            background: linear-gradient(135deg, #4299e1, #63b3ed);
+            color: white;
+            border-color: #3182ce;
+        }
+
+        .item-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e53e3e;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .world-map {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            margin-bottom: 20px;
+            background: #2d3748;
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .map-tile {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .map-tile.grass { background: linear-gradient(135deg, #48bb78, #68d391); }
+        .map-tile.water { background: linear-gradient(135deg, #4299e1, #63b3ed); }
+        .map-tile.mountain { background: linear-gradient(135deg, #718096, #a0aec0); }
+        .map-tile.forest { background: linear-gradient(135deg, #38a169, #48bb78); }
+        .map-tile.desert { background: linear-gradient(135deg, #ecc94b, #f6e05e); }
+        .map-tile.dungeon { background: linear-gradient(135deg, #553c9a, #7c3aed); }
+
+        .map-tile.player {
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            animation: pulse 2s infinite;
+        }
+
+        .map-tile:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+            50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.9); }
+        }
+
+        .location-info {
+            background: linear-gradient(135deg, #4a5568, #2d3748);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .location-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .location-description {
+            font-size: 1rem;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(66, 153, 225, 0.4);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-btn.explore { background: linear-gradient(135deg, #48bb78, #38a169); }
+        .action-btn.fight { background: linear-gradient(135deg, #e53e3e, #c53030); }
+        .action-btn.rest { background: linear-gradient(135deg, #9f7aea, #805ad5); }
+        .action-btn.shop { background: linear-gradient(135deg, #ecc94b, #d69e2e); }
+
+        .event-log {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid #e2e8f0;
+        }
+
+        .event-item {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .event-item.info { background: #bee3f8; color: #2c5282; }
+        .event-item.success { background: #c6f6d5; color: #22543d; }
+        .event-item.warning { background: #fefcbf; color: #744210; }
+        .event-item.danger { background: #fed7d7; color: #742a2a; }
+
+        .battle-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .battle-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .enemy-display {
+            font-size: 4rem;
+            margin: 20px 0;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+
+        .battle-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .battle-btn {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .battle-btn.defend { background: linear-gradient(135deg, #4299e1, #3182ce); }
+        .battle-btn.magic { background: linear-gradient(135deg, #9f7aea, #805ad5); }
+        .battle-btn.run { background: linear-gradient(135deg, #718096, #4a5568); }
+
+        .achievements {
+            margin-top: 20px;
+        }
+
+        .achievement {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f7fafc;
+            border-radius: 10px;
+            border-left: 4px solid #48bb78;
+        }
+
+        .achievement.locked {
+            opacity: 0.5;
+            border-left-color: #e2e8f0;
+        }
+
+        .achievement-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+
+        .achievement-text {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .developer-credit {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4299e1, #63b3ed);
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 1200px) {
+            .game-layout {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            .main-game {
+                order: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .world-map {
+                grid-template-columns: repeat(6, 1fr);
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .battle-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>⚔️ Crystal Quest ⚔️</h1>
+            <p>Jelajahi dunia fantasi yang penuh dengan petualangan dan misteri!</p>
+        </div>
+
+        <div class="game-layout">
+            <div class="sidebar stats-panel">
+                <h3>📊 Status Karakter</h3>
+                <div class="stat-item">
+                    <span>❤️ Health</span>
+                    <div class="stat-bar">
+                        <div class="stat-fill health-fill" id="healthBar" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <span>🔮 Mana</span>
+                    <div class="stat-bar">
+                        <div class="stat-fill mana-fill" id="manaBar" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <span>⭐ Level <span id="playerLevel">1</span></span>
+                    <div class="stat-bar">
+                        <div class="stat-fill exp-fill" id="expBar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <span>💰 Gold</span>
+                    <span id="playerGold">100</span>
+                </div>
+
+                <h3 style="margin-top: 25px;">🎒 Inventory</h3>
+                <div class="inventory-grid" id="inventoryGrid"></div>
+
+                <h3 style="margin-top: 25px;">🏆 Achievements</h3>
+                <div class="achievements" id="achievementsList"></div>
+            </div>
+
+            <div class="main-game">
+                <div class="location-info">
+                    <div class="location-name" id="locationName">Desa Pemula</div>
+                    <div class="location-description" id="locationDesc">Sebuah desa kecil yang damai, tempat yang sempurna untuk memulai petualangan.</div>
+                </div>
+
+                <div class="world-map" id="worldMap"></div>
+
+                <div class="action-buttons">
+                    <button class="action-btn explore" onclick="exploreArea()">🔍 Jelajahi</button>
+                    <button class="action-btn fight" onclick="findBattle()">⚔️ Cari Pertarungan</button>
+                    <button class="action-btn rest" onclick="restAtInn()">🏠 Istirahat</button>
+                    <button class="action-btn shop" onclick="visitShop()">🛒 Toko</button>
+                </div>
+
+                <div class="event-log" id="eventLog"></div>
+            </div>
+
+            <div class="sidebar inventory-panel">
+                <h3>🗺️ Peta Dunia</h3>
+                <div style="font-size: 0.9rem; color: #4a5568; margin-bottom: 15px;">
+                    Klik pada area untuk berpindah lokasi
+                </div>
+                
+                <h3 style="margin-top: 25px;">📈 Statistik</h3>
+                <div class="stat-item">
+                    <span>🏃 Langkah</span>
+                    <span id="stepCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>👹 Monster Dikalahkan</span>
+                    <span id="monsterCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>💎 Kristal Ditemukan</span>
+                    <span id="crystalCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>⏱️ Waktu Bermain</span>
+                    <span id="playTime">0:00</span>
+                </div>
+
+                <h3 style="margin-top: 25px;">🎯 Quest Aktif</h3>
+                <div id="activeQuests">
+                    <div class="achievement">
+                        <div class="achievement-icon">📜</div>
+                        <div class="achievement-text">
+                            <strong>Quest Pemula</strong><br>
+                            Jelajahi 5 area berbeda
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="questProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Battle Modal -->
+    <div class="battle-modal" id="battleModal">
+        <div class="battle-content">
+            <h2>⚔️ Pertarungan!</h2>
+            <div class="enemy-display" id="enemyDisplay">👹</div>
+            <div id="enemyName">Goblin Liar</div>
+            <div style="margin: 15px 0;">
+                <div>Enemy HP: <span id="enemyHP">30</span>/30</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="enemyHPBar" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="battle-actions">
+                <button class="battle-btn" onclick="battleAction('attack')">⚔️ Serang</button>
+                <button class="battle-btn defend" onclick="battleAction('defend')">🛡️ Bertahan</button>
+                <button class="battle-btn magic" onclick="battleAction('magic')">🔮 Sihir</button>
+                <button class="battle-btn run" onclick="battleAction('run')">🏃 Lari</button>
+            </div>
+            <div id="battleLog" style="margin-top: 15px; font-size: 0.9rem;"></div>
+        </div>
+    </div>
+
+    <div class="developer-credit">
+        Dev: Yaqub
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            player: {
+                level: 1,
+                health: 100,
+                maxHealth: 100,
+                mana: 50,
+                maxMana: 50,
+                exp: 0,
+                expToNext: 100,
+                gold: 100,
+                x: 3,
+                y: 3
+            },
+            inventory: {
+                '⚔️': 1,
+                '🛡️': 1,
+                '🧪': 3,
+                '💎': 0
+            },
+            stats: {
+                steps: 0,
+                monsters: 0,
+                crystals: 0,
+                areasExplored: 0
+            },
+            achievements: [
+                { id: 'first_step', name: 'Langkah Pertama', desc: 'Bergerak untuk pertama kali', icon: '👣', unlocked: false },
+                { id: 'first_battle', name: 'Pejuang Pemula', desc: 'Menang pertarungan pertama', icon: '⚔️', unlocked: false },
+                { id: 'explorer', name: 'Penjelajah', desc: 'Jelajahi 5 area berbeda', icon: '🗺️', unlocked: false },
+                { id: 'rich', name: 'Kaya Raya', desc: 'Kumpulkan 500 gold', icon: '💰', unlocked: false },
+                { id: 'crystal_hunter', name: 'Pemburu Kristal', desc: 'Temukan 10 kristal', icon: '💎', unlocked: false }
+            ],
+            currentBattle: null,
+            startTime: Date.now()
+        };
+
+        // World Map Data
+        const worldMap = [
+            ['🏔️', '🏔️', '🌊', '🌊', '🌊', '🏔️', '🏔️', '🏔️'],
+            ['🏔️', '🌲', '🌲', '🌊', '🌊', '🌲', '🏰', '🏔️'],
+            ['🌲', '🌲', '🌿', '🌿', '🌿', '🌿', '🌲', '🌲'],
+            ['🌲', '🌿', '🌿', '🏘️', '🌿', '🌿', '🌿', '🌲'],
+            ['🌿', '🌿', '🌿', '🌿', '🌿', '🏜️', '🏜️', '🌿'],
+            ['🌿', '🌲', '🌿', '🏜️', '🏜️', '🏜️', '🏜️', '🏜️'],
+            ['🌲', '🌲', '🌲', '🏜️', '🏜️', '🕳️', '🏜️', '🏜️'],
+            ['🏔️', '🏔️', '🌲', '🌲', '🏜️', '🏜️', '🏜️', '🏔️']
+        ];
+
+        const locations = {
+            '🏘️': { name: 'Desa Pemula', desc: 'Sebuah desa kecil yang damai, tempat yang sempurna untuk memulai petualangan.' },
+            '🌿': { name: 'Padang Rumput', desc: 'Padang luas dengan rumput hijau dan bunga-bunga liar yang indah.' },
+            '🌲': { name: 'Hutan Lebat', desc: 'Hutan gelap penuh dengan pohon tinggi dan makhluk misterius.' },
+            '🏔️': { name: 'Pegunungan', desc: 'Gunung tinggi dengan jalur berbahaya dan pemandangan menakjubkan.' },
+            '🌊': { name: 'Danau Kristal', desc: 'Danau jernih dengan air yang berkilauan seperti kristal.' },
+            '🏜️': { name: 'Gurun Pasir', desc: 'Gurun luas dengan pasir panas dan oasis tersembunyi.' },
+            '🏰': { name: 'Kastil Tua', desc: 'Kastil kuno yang penuh dengan harta karun dan bahaya.' },
+            '🕳️': { name: 'Dungeon Gelap', desc: 'Gua dalam yang gelap, rumah bagi monster-monster kuat.' }
+        };
+
+        const enemies = [
+            { name: 'Goblin Kecil', icon: '👺', hp: 20, exp: 15, gold: 10 },
+            { name: 'Serigala Liar', icon: '🐺', hp: 35, exp: 25, gold: 20 },
+            { name: 'Orc Pejuang', icon: '👹', hp: 50, exp: 40, gold: 35 },
+            { name: 'Naga Muda', icon: '🐉', hp: 80, exp: 70, gold: 60 },
+            { name: 'Skeleton Warrior', icon: '💀', hp: 45, exp: 35, gold: 25 }
+        ];
+
+        // Initialize Game
+        function initGame() {
+            updateDisplay();
+            renderWorldMap();
+            renderInventory();
+            renderAchievements();
+            addEvent('Selamat datang di Crystal Quest! Petualanganmu dimulai sekarang.', 'info');
+            updatePlayTime();
+        }
+
+        function updateDisplay() {
+            // Update stats
+            document.getElementById('playerLevel').textContent = gameState.player.level;
+            document.getElementById('playerGold').textContent = gameState.player.gold;
+            
+            // Update bars
+            const healthPercent = (gameState.player.health / gameState.player.maxHealth) * 100;
+            const manaPercent = (gameState.player.mana / gameState.player.maxMana) * 100;
+            const expPercent = (gameState.player.exp / gameState.player.expToNext) * 100;
+            
+            document.getElementById('healthBar').style.width = healthPercent + '%';
+            document.getElementById('manaBar').style.width = manaPercent + '%';
+            document.getElementById('expBar').style.width = expPercent + '%';
+            
+            // Update location
+            const currentTile = worldMap[gameState.player.y][gameState.player.x];
+            const location = locations[currentTile];
+            document.getElementById('locationName').textContent = location.name;
+            document.getElementById('locationDesc').textContent = location.desc;
+            
+            // Update stats
+            document.getElementById('stepCount').textContent = gameState.stats.steps;
+            document.getElementById('monsterCount').textContent = gameState.stats.monsters;
+            document.getElementById('crystalCount').textContent = gameState.stats.crystals;
+            
+            // Update quest progress
+            const questProgress = Math.min((gameState.stats.areasExplored / 5) * 100, 100);
+            document.getElementById('questProgress').style.width = questProgress + '%';
+        }
+
+        function renderWorldMap() {
+            const mapContainer = document.getElementById('worldMap');
+            mapContainer.innerHTML = '';
+            
+            worldMap.forEach((row, y) => {
+                row.forEach((tile, x) => {
+                    const tileElement = document.createElement('div');
+                    tileElement.className = 'map-tile';
+                    tileElement.textContent = tile;
+                    
+                    if (x === gameState.player.x && y === gameState.player.y) {
+                        tileElement.classList.add('player');
+                    }
+                    
+                    tileElement.onclick = () => movePlayer(x, y);
+                    mapContainer.appendChild(tileElement);
+                });
+            });
+        }
+
+        function renderInventory() {
+            const inventoryGrid = document.getElementById('inventoryGrid');
+            inventoryGrid.innerHTML = '';
+            
+            for (let i = 0; i < 12; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot';
+                
+                const items = Object.keys(gameState.inventory);
+                if (i < items.length) {
+                    const item = items[i];
+                    const count = gameState.inventory[item];
+                    if (count > 0) {
+                        slot.classList.add('filled');
+                        slot.textContent = item;
+                        if (count > 1) {
+                            const countElement = document.createElement('div');
+                            countElement.className = 'item-count';
+                            countElement.textContent = count;
+                            slot.appendChild(countElement);
+                        }
+                    }
+                }
+                
+                inventoryGrid.appendChild(slot);
+            }
+        }
+
+        function renderAchievements() {
+            const achievementsList = document.getElementById('achievementsList');
+            achievementsList.innerHTML = '';
+            
+            gameState.achievements.forEach(achievement => {
+                const achievementElement = document.createElement('div');
+                achievementElement.className = `achievement ${achievement.unlocked ? '' : 'locked'}`;
+                achievementElement.innerHTML = `
+                    <div class="achievement-icon">${achievement.icon}</div>
+                    <div class="achievement-text">
+                        <strong>${achievement.name}</strong><br>
+                        ${achievement.desc}
+                    </div>
+                `;
+                achievementsList.appendChild(achievementElement);
+            });
+        }
+
+        function movePlayer(x, y) {
+            if (Math.abs(x - gameState.player.x) + Math.abs(y - gameState.player.y) === 1) {
+                gameState.player.x = x;
+                gameState.player.y = y;
+                gameState.stats.steps++;
+                
+                checkAchievement('first_step');
+                
+                // Random events
+                if (Math.random() < 0.3) {
+                    randomEvent();
+                }
+                
+                updateDisplay();
+                renderWorldMap();
+                addEvent(`Berpindah ke ${locations[worldMap[y][x]].name}`, 'info');
+            }
+        }
+
+        function exploreArea() {
+            gameState.stats.areasExplored++;
+            const events = [
+                { text: 'Kamu menemukan 20 gold tersembunyi!', type: 'success', action: () => { gameState.player.gold += 20; } },
+                { text: 'Kamu menemukan kristal berharga!', type: 'success', action: () => { gameState.inventory['💎']++; gameState.stats.crystals++; } },
+                { text: 'Kamu menemukan ramuan kesehatan!', type: 'success', action: () => { gameState.inventory['🧪']++; } },
+                { text: 'Area ini tampak sepi...', type: 'info', action: () => {} },
+                { text: 'Kamu mendengar suara aneh di kejauhan...', type: 'warning', action: () => {} }
+            ];
+            
+            const event = events[Math.floor(Math.random() * events.length)];
+            event.action();
+            addEvent(event.text, event.type);
+            
+            checkAchievement('explorer');
+            checkAchievement('crystal_hunter');
+            checkAchievement('rich');
+            
+            updateDisplay();
+            renderInventory();
+        }
+
+        function findBattle() {
+            const enemy = enemies[Math.floor(Math.random() * enemies.length)];
+            gameState.currentBattle = {
+                enemy: { ...enemy, currentHP: enemy.hp },
+                playerDefending: false
+            };
+            
+            document.getElementById('enemyDisplay').textContent = enemy.icon;
+            document.getElementById('enemyName').textContent = enemy.name;
+            document.getElementById('enemyHP').textContent = enemy.hp;
+            document.getElementById('enemyHPBar').style.width = '100%';
+            document.getElementById('battleLog').innerHTML = '';
+            
+            document.getElementById('battleModal').style.display = 'flex';
+            addEvent(`Bertemu dengan ${enemy.name}!`, 'warning');
+        }
+
+        function battleAction(action) {
+            const battle = gameState.currentBattle;
+            const enemy = battle.enemy;
+            let battleText = '';
+            
+            // Player action
+            switch(action) {
+                case 'attack':
+                    const damage = Math.floor(Math.random() * 20) + 10;
+                    enemy.currentHP -= damage;
+                    battleText += `Kamu menyerang dan memberikan ${damage} damage! `;
+                    break;
+                case 'defend':
+                    battle.playerDefending = true;
+                    battleText += 'Kamu bersiap bertahan! ';
+                    break;
+                case 'magic':
+                    if (gameState.player.mana >= 10) {
+                        const magicDamage = Math.floor(Math.random() * 30) + 15;
+                        enemy.currentHP -= magicDamage;
+                        gameState.player.mana -= 10;
+                        battleText += `Kamu menggunakan sihir dan memberikan ${magicDamage} damage! `;
+                    } else {
+                        battleText += 'Mana tidak cukup! ';
+                    }
+                    break;
+                case 'run':
+                    if (Math.random() < 0.7) {
+                        document.getElementById('battleModal').style.display = 'none';
+                        addEvent('Berhasil melarikan diri!', 'info');
+                        return;
+                    } else {
+                        battleText += 'Gagal melarikan diri! ';
+                    }
+                    break;
+            }
+            
+            // Check if enemy is defeated
+            if (enemy.currentHP <= 0) {
+                gameState.player.exp += enemy.exp;
+                gameState.player.gold += enemy.gold;
+                gameState.stats.monsters++;
+                
+                battleText += `${enemy.name} dikalahkan! Mendapat ${enemy.exp} EXP dan ${enemy.gold} gold!`;
+                
+                // Level up check
+                if (gameState.player.exp >= gameState.player.expToNext) {
+                    gameState.player.level++;
+                    gameState.player.exp -= gameState.player.expToNext;
+                    gameState.player.expToNext = Math.floor(gameState.player.expToNext * 1.5);
+                    gameState.player.maxHealth += 20;
+                    gameState.player.health = gameState.player.maxHealth;
+                    gameState.player.maxMana += 10;
+                    gameState.player.mana = gameState.player.maxMana;
+                    battleText += ` LEVEL UP! Sekarang level ${gameState.player.level}!`;
+                }
+                
+                document.getElementById('battleModal').style.display = 'none';
+                checkAchievement('first_battle');
+                checkAchievement('rich');
+                updateDisplay();
+                renderInventory();
+                addEvent(battleText, 'success');
+                return;
+            }
+            
+            // Enemy attack
+            const enemyDamage = Math.floor(Math.random() * 15) + 5;
+            const actualDamage = battle.playerDefending ? Math.floor(enemyDamage / 2) : enemyDamage;
+            gameState.player.health -= actualDamage;
+            battleText += `${enemy.name} menyerang dan memberikan ${actualDamage} damage!`;
+            
+            battle.playerDefending = false;
+            
+            // Check if player is defeated
+            if (gameState.player.health <= 0) {
+                gameState.player.health = 1;
+                gameState.player.gold = Math.floor(gameState.player.gold * 0.8);
+                battleText += ' Kamu kalah! Kehilangan 20% gold.';
+                document.getElementById('battleModal').style.display = 'none';
+                addEvent(battleText, 'danger');
+                updateDisplay();
+                return;
+            }
+            
+            // Update battle display
+            const enemyHPPercent = (enemy.currentHP / enemy.hp) * 100;
+            document.getElementById('enemyHP').textContent = enemy.currentHP;
+            document.getElementById('enemyHPBar').style.width = enemyHPPercent + '%';
+            document.getElementById('battleLog').innerHTML = battleText;
+            
+            updateDisplay();
+        }
+
+        function restAtInn() {
+            const cost = 20;
+            if (gameState.player.gold >= cost) {
+                gameState.player.gold -= cost;
+                gameState.player.health = gameState.player.maxHealth;
+                gameState.player.mana = gameState.player.maxMana;
+                addEvent(`Beristirahat di penginapan. Health dan Mana pulih! (-${cost} gold)`, 'success');
+            } else {
+                addEvent('Gold tidak cukup untuk beristirahat!', 'warning');
+            }
+            updateDisplay();
+        }
+
+        function visitShop() {
+            const items = [
+                { name: 'Ramuan Kesehatan', icon: '🧪', price: 15 },
+                { name: 'Pedang Baru', icon: '⚔️', price: 100 },
+                { name: 'Perisai Kuat', icon: '🛡️', price: 80 }
+            ];
+            
+            const item = items[Math.floor(Math.random() * items.length)];
+            
+            if (gameState.player.gold >= item.price) {
+                if (confirm(`Beli ${item.name} seharga ${item.price} gold?`)) {
+                    gameState.player.gold -= item.price;
+                    gameState.inventory[item.icon] = (gameState.inventory[item.icon] || 0) + 1;
+                    addEvent(`Membeli ${item.name}!`, 'success');
+                    updateDisplay();
+                    renderInventory();
+                }
+            } else {
+                addEvent(`Gold tidak cukup untuk membeli ${item.name}!`, 'warning');
+            }
+        }
+
+        function randomEvent() {
+            const events = [
+                { text: 'Kamu menemukan koin emas di tanah!', type: 'success', action: () => { gameState.player.gold += 5; } },
+                { text: 'Seekor burung memberikan ramuan kepadamu!', type: 'success', action: () => { gameState.inventory['🧪']++; } },
+                { text: 'Kamu tersandung dan kehilangan sedikit health.', type: 'warning', action: () => { gameState.player.health = Math.max(1, gameState.player.health - 5); } },
+                { text: 'Angin sejuk memulihkan sedikit mana.', type: 'info', action: () => { gameState.player.mana = Math.min(gameState.player.maxMana, gameState.player.mana + 5); } }
+            ];
+            
+            const event = events[Math.floor(Math.random() * events.length)];
+            event.action();
+            addEvent(event.text, event.type);
+            updateDisplay();
+            renderInventory();
+        }
+
+        function checkAchievement(achievementId) {
+            const achievement = gameState.achievements.find(a => a.id === achievementId);
+            if (achievement && !achievement.unlocked) {
+                let unlock = false;
+                
+                switch(achievementId) {
+                    case 'first_step':
+                        unlock = gameState.stats.steps >= 1;
+                        break;
+                    case 'first_battle':
+                        unlock = gameState.stats.monsters >= 1;
+                        break;
+                    case 'explorer':
+                        unlock = gameState.stats.areasExplored >= 5;
+                        break;
+                    case 'rich':
+                        unlock = gameState.player.gold >= 500;
+                        break;
+                    case 'crystal_hunter':
+                        unlock = gameState.stats.crystals >= 10;
+                        break;
+                }
+                
+                if (unlock) {
+                    achievement.unlocked = true;
+                    addEvent(`🏆 Achievement Unlocked: ${achievement.name}!`, 'success');
+                    renderAchievements();
+                }
+            }
+        }
+
+        function addEvent(text, type) {
+            const eventLog = document.getElementById('eventLog');
+            const eventItem = document.createElement('div');
+            eventItem.className = `event-item ${type}`;
+            eventItem.textContent = text;
+            
+            eventLog.insertBefore(eventItem, eventLog.firstChild);
+            
+            // Keep only last 10 events
+            while (eventLog.children.length > 10) {
+                eventLog.removeChild(eventLog.lastChild);
+            }
+        }
+
+        function updatePlayTime() {
+            const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('playTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            setTimeout(updatePlayTime, 1000);
+        }
+
+        // Initialize game when page loads
+        window.onload = initGame;
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'988cb664d633df9f',t:'MTc1OTQ5NzM3MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
